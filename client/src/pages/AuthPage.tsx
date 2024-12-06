@@ -21,17 +21,31 @@ const loginSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
+const twoFactorSchema = z.object({
+  code: z.string().length(6, "Verification code must be 6 digits"),
+});
+
 type LoginFormData = z.infer<typeof loginSchema>;
+type TwoFactorFormData = z.infer<typeof twoFactorSchema>;
 
 export default function AuthPage() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [showTwoFactor, setShowTwoFactor] = useState(false);
+  const [loginData, setLoginData] = useState<LoginFormData | null>(null);
 
   const loginForm = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
       identifier: "",
       password: "",
+    },
+  });
+
+  const twoFactorForm = useForm<TwoFactorFormData>({
+    resolver: zodResolver(twoFactorSchema),
+    defaultValues: {
+      code: "",
     },
   });
 
@@ -49,38 +63,59 @@ export default function AuthPage() {
         description: "Connecting to BlueSky...",
       });
       
-      const response = await agent.login({
+      await agent.login({
         identifier: data.identifier,
         password: data.password,
       });
-      
-      if (agent.hasSession) {
-        // Store the session securely
-        const session = {
-          did: response.data.did,
-          handle: response.data.handle,
-          email: response.data.email,
-          accessJwt: response.data.accessJwt,
-          refreshJwt: response.data.refreshJwt,
-        };
-        
-        localStorage.setItem('bsky-session', JSON.stringify(session));
-        
-        toast({
-          title: "Welcome!",
-          description: `Successfully logged in as ${response.data.handle}`,
-        });
 
-        // Redirect to home after successful login
-        setTimeout(() => {
-          window.location.href = "/";
-        }, 1500);
-      }
+      // If we get here without an error, we're logged in
+      handleSuccessfulLogin(agent);
+      
     } catch (error: any) {
       console.error('Login error:', error);
+      
+      // Check if this is a 2FA request
+      if (error.error === "AuthFactorRequired") {
+        setLoginData(data);
+        setShowTwoFactor(true);
+        toast({
+          title: "Verification Required",
+          description: "A verification code has been sent to your email",
+        });
+      } else {
+        toast({
+          title: "Authentication Failed",
+          description: error.message || "Please check your credentials and try again",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const onTwoFactorSubmit = async (data: TwoFactorFormData) => {
+    if (!loginData) return;
+    
+    setIsLoading(true);
+    try {
+      const agent = new BskyAgent({ 
+        service: 'https://bsky.social',
+      });
+
+      const response = await agent.login({
+        identifier: loginData.identifier,
+        password: loginData.password,
+        verificationCode: data.code,
+      });
+
+      handleSuccessfulLogin(agent, response);
+      
+    } catch (error: any) {
+      console.error('2FA Verification error:', error);
       toast({
-        title: "Authentication Failed",
-        description: error.message || "Please check your credentials and try again",
+        title: "Verification Failed",
+        description: error.message || "Invalid verification code",
         variant: "destructive",
       });
     } finally {
@@ -88,31 +123,25 @@ export default function AuthPage() {
     }
   };
 
-  const onTwoFactorSubmit = async (data: TwoFactorFormData) => {
-    try {
-      console.log("Verifying 2FA code:", data.code);
-      
-      // Simulate verifying the code
-      if (data.code === "123456") { // This would be validated against the actual sent code
-        toast({
-          title: "Success",
-          description: "Successfully verified! Redirecting...",
-        });
-        // Redirect to home page after successful verification
-        setTimeout(() => {
-          window.location.href = "/";
-        }, 1500);
-      } else {
-        throw new Error("Invalid code");
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Invalid verification code. Please try again.",
-        variant: "destructive",
-      });
-    }
+  const handleSuccessfulLogin = (agent: BskyAgent, response: any = null) => {
+    if (!agent.hasSession) return;
+
+    // Store the session securely
+    const session = response?.data || agent.session;
+    localStorage.setItem('bsky-session', JSON.stringify(session));
+    
+    toast({
+      title: "Welcome!",
+      description: `Successfully logged in as ${session.handle}`,
+    });
+
+    // Redirect to home after successful login
+    setTimeout(() => {
+      window.location.href = "/";
+    }, 1500);
   };
+
+  // Removed duplicate onTwoFactorSubmit function
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-background bg-gradient-to-b from-background to-background/95">
@@ -122,52 +151,96 @@ export default function AuthPage() {
             Sign in with BlueSky
           </h1>
 
-          <Form {...loginForm}>
-            <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
-              <FormField
-                control={loginForm.control}
-                name="identifier"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Username or Email</FormLabel>
-                    <FormControl>
-                      <Input {...field} type="text" placeholder="handle.bsky.social" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+          {!showTwoFactor ? (
+            <Form {...loginForm}>
+              <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
+                <FormField
+                  control={loginForm.control}
+                  name="identifier"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Username or Email</FormLabel>
+                      <FormControl>
+                        <Input {...field} type="text" placeholder="handle.bsky.social" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              <FormField
-                control={loginForm.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <Input {...field} type="password" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                <FormField
+                  control={loginForm.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Password</FormLabel>
+                      <FormControl>
+                        <Input {...field} type="password" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              <Button
-                type="submit"
-                className="w-full transition-all hover:scale-105"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <>
-                    <span className="mr-2">Signing in</span>
-                    <span className="animate-spin">⋯</span>
-                  </>
-                ) : (
-                  "Sign In"
-                )}
-              </Button>
-            </form>
-          </Form>
+                <Button
+                  type="submit"
+                  className="w-full transition-all hover:scale-105"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <>
+                      <span className="mr-2">Signing in</span>
+                      <span className="animate-spin">⋯</span>
+                    </>
+                  ) : (
+                    "Sign In"
+                  )}
+                </Button>
+              </form>
+            </Form>
+          ) : (
+            <Form {...twoFactorForm}>
+              <form onSubmit={twoFactorForm.handleSubmit(onTwoFactorSubmit)} className="space-y-4">
+                <FormField
+                  control={twoFactorForm.control}
+                  name="code"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Verification Code</FormLabel>
+                      <FormControl>
+                        <Input 
+                          {...field} 
+                          type="text" 
+                          maxLength={6} 
+                          placeholder="Enter 6-digit code" 
+                          className="text-center tracking-wider"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                      <p className="text-sm text-muted-foreground mt-2">
+                        Please check your email for the verification code.
+                      </p>
+                    </FormItem>
+                  )}
+                />
+
+                <Button
+                  type="submit"
+                  className="w-full transition-all hover:scale-105"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <>
+                      <span className="mr-2">Verifying</span>
+                      <span className="animate-spin">⋯</span>
+                    </>
+                  ) : (
+                    "Verify Code"
+                  )}
+                </Button>
+              </form>
+            </Form>
+          )}
         </div>
       </Card>
     </div>
