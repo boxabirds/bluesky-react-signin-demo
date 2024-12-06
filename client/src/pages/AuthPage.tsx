@@ -103,10 +103,11 @@ export default function AuthPage() {
         service: 'https://bsky.social',
       });
 
-      const response = await agent.loginWithCode({
+      // Use the standard login method but include the 2FA token
+      const response = await agent.login({
         identifier: loginData.identifier,
         password: loginData.password,
-        code: data.code,
+        token: data.code,  // The 2FA token from the user
       });
 
       handleSuccessfulLogin(agent, response);
