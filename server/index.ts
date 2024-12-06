@@ -52,6 +52,26 @@ app.use((req, res, next) => {
   registerRoutes(app);
   const server = createServer(app);
 
+  // Handle graceful shutdown
+  const connections = new Set<any>();
+  server.on('connection', (conn) => {
+    connections.add(conn);
+    conn.on('close', () => connections.delete(conn));
+  });
+
+  const shutdown = () => {
+    // Close all existing connections
+    connections.forEach((conn) => {
+      conn.destroy();
+    });
+    server.close(() => {
+      process.exit(0);
+    });
+  };
+
+  process.on('SIGTERM', shutdown);
+  process.on('SIGINT', shutdown);
+
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
@@ -69,9 +89,9 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on port 5000
+  // ALWAYS serve the app on port 4000
   // this serves both the API and the client
-  const PORT = 5000;
+  const PORT = 4000;
   server.listen(PORT, "0.0.0.0", () => {
     log(`serving on port ${PORT}`);
   });
