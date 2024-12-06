@@ -23,9 +23,8 @@ const loginSchema = z.object({
 
 const twoFactorSchema = z.object({
   code: z.string()
-    .min(6, "Code must be exactly 6 digits")
-    .max(6, "Code must be exactly 6 digits")
-    .regex(/^\d+$/, "Code must contain only numbers"),
+    .length(11, "Code must be in the format XXXXX-XXXXX")
+    .regex(/^[A-Z0-9]{5}-[A-Z0-9]{5}$/, "Code must be in the format XXXXX-XXXXX"),
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
@@ -219,14 +218,15 @@ export default function AuthPage() {
                       <FormControl>
                         <Input
                           {...field}
-                          type="number"
-                          inputMode="numeric"
-                          pattern="[0-9]*"
-                          maxLength={6}
-                          placeholder="Enter 6-digit code"
-                          className="text-center tracking-wider [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          type="text"
+                          maxLength={11}
+                          placeholder="XXXXX-XXXXX"
+                          className="text-center tracking-wider font-mono"
                           onChange={(e) => {
-                            const value = e.target.value.slice(0, 6);
+                            let value = e.target.value.toUpperCase();
+                            if (value.length === 5 && !value.includes('-')) {
+                              value = value + '-';
+                            }
                             field.onChange(value);
                           }}
                         />
