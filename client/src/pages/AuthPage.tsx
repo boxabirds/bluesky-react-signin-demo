@@ -209,41 +209,34 @@ export default function AuthPage() {
                 onSubmit={twoFactorForm.handleSubmit(onTwoFactorSubmit)}
                 className="space-y-4"
               >
-                <FormField
-                  control={twoFactorForm.control}
-                  name="code"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Two-Factor Code</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          type="text"
-                          placeholder="XXXXX-XXXXX"
-                          className="text-center"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                      <p className="text-sm text-muted-foreground mt-2">
-                        Please enter your two-factor authentication code
-                      </p>
-                    </FormItem>
-                  )}
-                />
+                <div className="space-y-2">
+                  <FormField
+                    control={twoFactorForm.control}
+                    name="code"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Verification Code</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="XXXXX-XXXXX"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Enter the code sent to your email (format: XXXXX-XXXXX)
+                  </p>
+                </div>
 
                 <Button
                   type="submit"
-                  className="w-full transition-all hover:scale-105"
+                  className="w-full"
                   disabled={isLoading}
                 >
-                  {isLoading ? (
-                    <>
-                      <span className="mr-2">Verifying</span>
-                      <span className="animate-spin">⋯</span>
-                    </>
-                  ) : (
-                    "Verify Code"
-                  )}
+                  {isLoading ? "Verifying..." : "Verify"}
                 </Button>
               </form>
             </Form>
