@@ -74,12 +74,12 @@ export default function AuthPage() {
       console.error("Login error:", error);
 
       // Check if this is a 2FA request
-      if (error.error === "AuthFactorTokenRequiredError") {
+      if (error.error === "AuthFactorTokenRequiredError: A sign in code has been sent to your email address") {
         setLoginData(data);
         setShowTwoFactor(true);
         toast({
           title: "Verification Required",
-          description: "Please enter your two-factor authentication code",
+          description: "Please enter the verification code sent to your email",
         });
       } else {
         toast({
