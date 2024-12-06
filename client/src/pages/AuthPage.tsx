@@ -103,14 +103,13 @@ export default function AuthPage() {
         service: 'https://bsky.social',
       });
 
-      // According to AT Protocol API docs, we should get a 2FA token from the initial login attempt
-      // and use that along with the user's code for verification
       await agent.login({
         identifier: loginData.identifier,
         password: loginData.password,
+        totp: data.code, // Use TOTP (Time-based One-Time Password) for 2FA
       });
 
-      handleSuccessfulLogin(agent, response);
+      handleSuccessfulLogin(agent);
       
     } catch (error: any) {
       console.error('2FA Verification error:', error);
@@ -124,16 +123,15 @@ export default function AuthPage() {
     }
   };
 
-  const handleSuccessfulLogin = (agent: BskyAgent, response: any = null) => {
-    if (!agent.hasSession) return;
+  const handleSuccessfulLogin = (agent: BskyAgent) => {
+    if (!agent.session) return;
 
     // Store the session securely
-    const session = response?.data || agent.session;
-    localStorage.setItem('bsky-session', JSON.stringify(session));
+    localStorage.setItem('bsky-session', JSON.stringify(agent.session));
     
     toast({
       title: "Welcome!",
-      description: `Successfully logged in as ${session.handle}`,
+      description: `Successfully logged in as ${agent.session?.handle}`,
     });
 
     // Redirect to home after successful login
