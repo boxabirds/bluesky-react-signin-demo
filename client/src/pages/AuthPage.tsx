@@ -14,21 +14,16 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useToast } from "@/hooks/use-toast";
+import { BskyAgent } from "@atproto/api";
 
 const loginSchema = z.object({
   identifier: z.string().min(1, "Username or email is required"),
   password: z.string().min(1, "Password is required"),
 });
 
-const twoFactorSchema = z.object({
-  code: z.string().length(6, "2FA code must be 6 digits"),
-});
-
 type LoginFormData = z.infer<typeof loginSchema>;
-type TwoFactorFormData = z.infer<typeof twoFactorSchema>;
 
 export default function AuthPage() {
-  const [showTwoFactor, setShowTwoFactor] = useState(false);
   const { toast } = useToast();
 
   const loginForm = useForm<LoginFormData>({
@@ -39,30 +34,35 @@ export default function AuthPage() {
     },
   });
 
-  const twoFactorForm = useForm<TwoFactorFormData>({
-    resolver: zodResolver(twoFactorSchema),
-    defaultValues: {
-      code: "",
-    },
-    mode: "onChange",
-  });
-
   const onLoginSubmit = async (data: LoginFormData) => {
     try {
-      // Simulate API call to verify credentials
-      console.log("Verifying credentials:", data.identifier);
-      
-      // Simulate sending verification email
-      toast({
-        title: "Verification Email Sent",
-        description: `A verification code has been sent to ${data.identifier}`,
+      const agent = new BskyAgent({ 
+        service: 'https://bsky.social',
       });
       
-      setShowTwoFactor(true);
-    } catch (error) {
+      await agent.login({
+        identifier: data.identifier,
+        password: data.password,
+      });
+      
+      if (agent.hasSession) {
+        toast({
+          title: "Success",
+          description: "Successfully logged in!",
+        });
+        
+        // Store the session
+        localStorage.setItem('bsky-session', JSON.stringify(agent.session));
+        
+        // Redirect to home after successful login
+        setTimeout(() => {
+          window.location.href = "/";
+        }, 1500);
+      }
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Invalid credentials",
+        description: error.message || "Invalid credentials",
         variant: "destructive",
       });
     }
@@ -102,80 +102,44 @@ export default function AuthPage() {
             Sign in with BlueSky
           </h1>
 
-          {!showTwoFactor ? (
-            <Form {...loginForm}>
-              <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
-                <FormField
-                  control={loginForm.control}
-                  name="identifier"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Username or Email</FormLabel>
-                      <FormControl>
-                        <Input {...field} type="text" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+          <Form {...loginForm}>
+            <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
+              <FormField
+                control={loginForm.control}
+                name="identifier"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Username or Email</FormLabel>
+                    <FormControl>
+                      <Input {...field} type="text" placeholder="handle.bsky.social" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-                <FormField
-                  control={loginForm.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Password</FormLabel>
-                      <FormControl>
-                        <Input {...field} type="password" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+              <FormField
+                control={loginForm.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Password</FormLabel>
+                    <FormControl>
+                      <Input {...field} type="password" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-                <Button
-                  type="submit"
-                  className="w-full transition-all hover:scale-105"
-                >
-                  Sign In
-                </Button>
-              </form>
-            </Form>
-          ) : (
-            <Form {...twoFactorForm}>
-              <form onSubmit={twoFactorForm.handleSubmit(onTwoFactorSubmit)} className="space-y-4">
-                <FormField
-                  control={twoFactorForm.control}
-                  name="code"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Verification Code</FormLabel>
-                      <FormControl>
-                        <Input 
-                          {...field} 
-                          type="text" 
-                          maxLength={6} 
-                          placeholder="Enter 6-digit code from your email" 
-                          className="text-center tracking-wider"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                      <p className="text-sm text-muted-foreground mt-2">
-                        Please check your email for the verification code.
-                      </p>
-                    </FormItem>
-                  )}
-                />
-
-                <Button
-                  type="submit"
-                  className="w-full transition-all hover:scale-105"
-                >
-                  Verify
-                </Button>
-              </form>
-            </Form>
-          )}
+              <Button
+                type="submit"
+                className="w-full transition-all hover:scale-105"
+              >
+                Sign In
+              </Button>
+            </form>
+          </Form>
         </div>
       </Card>
     </div>
