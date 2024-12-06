@@ -25,6 +25,7 @@ type LoginFormData = z.infer<typeof loginSchema>;
 
 export default function AuthPage() {
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
 
   const loginForm = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -35,36 +36,55 @@ export default function AuthPage() {
   });
 
   const onLoginSubmit = async (data: LoginFormData) => {
+    if (isLoading) return;
+    
+    setIsLoading(true);
     try {
       const agent = new BskyAgent({ 
         service: 'https://bsky.social',
       });
+
+      toast({
+        title: "Authenticating",
+        description: "Connecting to BlueSky...",
+      });
       
-      await agent.login({
+      const response = await agent.login({
         identifier: data.identifier,
         password: data.password,
       });
       
       if (agent.hasSession) {
+        // Store the session securely
+        const session = {
+          did: response.data.did,
+          handle: response.data.handle,
+          email: response.data.email,
+          accessJwt: response.data.accessJwt,
+          refreshJwt: response.data.refreshJwt,
+        };
+        
+        localStorage.setItem('bsky-session', JSON.stringify(session));
+        
         toast({
-          title: "Success",
-          description: "Successfully logged in!",
+          title: "Welcome!",
+          description: `Successfully logged in as ${response.data.handle}`,
         });
-        
-        // Store the session
-        localStorage.setItem('bsky-session', JSON.stringify(agent.session));
-        
+
         // Redirect to home after successful login
         setTimeout(() => {
           window.location.href = "/";
         }, 1500);
       }
     } catch (error: any) {
+      console.error('Login error:', error);
       toast({
-        title: "Error",
-        description: error.message || "Invalid credentials",
+        title: "Authentication Failed",
+        description: error.message || "Please check your credentials and try again",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -135,8 +155,16 @@ export default function AuthPage() {
               <Button
                 type="submit"
                 className="w-full transition-all hover:scale-105"
+                disabled={isLoading}
               >
-                Sign In
+                {isLoading ? (
+                  <>
+                    <span className="mr-2">Signing in</span>
+                    <span className="animate-spin">⋯</span>
+                  </>
+                ) : (
+                  "Sign In"
+                )}
               </Button>
             </form>
           </Form>
