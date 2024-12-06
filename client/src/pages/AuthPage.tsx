@@ -22,7 +22,10 @@ const loginSchema = z.object({
 });
 
 const twoFactorSchema = z.object({
-  code: z.string().length(6, "Verification code must be 6 digits"),
+  code: z.string()
+    .min(6, "Code must be exactly 6 digits")
+    .max(6, "Code must be exactly 6 digits")
+    .regex(/^\d+$/, "Code must contain only numbers"),
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
@@ -216,10 +219,16 @@ export default function AuthPage() {
                       <FormControl>
                         <Input
                           {...field}
-                          type="text"
+                          type="number"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
                           maxLength={6}
                           placeholder="Enter 6-digit code"
-                          className="text-center tracking-wider"
+                          className="text-center tracking-wider [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          onChange={(e) => {
+                            const value = e.target.value.slice(0, 6);
+                            field.onChange(value);
+                          }}
                         />
                       </FormControl>
                       <FormMessage />
