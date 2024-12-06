@@ -75,12 +75,12 @@ export default function AuthPage() {
       console.error('Login error:', error);
       
       // Check if this is a 2FA request
-      if (error.error === "AuthFactorTokenRequired") {
+      if (error.error === "AuthFactorRequired") {
         setLoginData(data);
         setShowTwoFactor(true);
         toast({
           title: "Verification Required",
-          description: "A sign in code has been sent to your email address",
+          description: "Please enter your two-factor authentication code",
         });
       } else {
         toast({
@@ -103,22 +103,13 @@ export default function AuthPage() {
         service: 'https://bsky.social',
       });
 
-      // For 2FA flow, we need a two-step process
-      // First attempt will give us the 2FA token
-      const { data: sessionData } = await agent.api.com.atproto.server.createSession({
+      await agent.login({
         identifier: loginData.identifier,
         password: loginData.password,
+        totp: data.code,
       });
 
-      // Then we confirm with the 2FA code
-      const response = await agent.api.com.atproto.server.confirmEmail({
-        token: data.code,
-        email: loginData.identifier,
-      });
-
-      if (response.success) {
-        handleSuccessfulLogin(agent);
-      }
+      handleSuccessfulLogin(agent);
       
     } catch (error: any) {
       console.error('2FA Verification error:', error);
@@ -148,8 +139,6 @@ export default function AuthPage() {
       window.location.href = "/";
     }, 1500);
   };
-
-  // Removed duplicate onTwoFactorSubmit function
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-background bg-gradient-to-b from-background to-background/95">
@@ -214,7 +203,7 @@ export default function AuthPage() {
                   name="code"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Verification Code</FormLabel>
+                      <FormLabel>Two-Factor Code</FormLabel>
                       <FormControl>
                         <Input 
                           {...field} 
@@ -226,7 +215,7 @@ export default function AuthPage() {
                       </FormControl>
                       <FormMessage />
                       <p className="text-sm text-muted-foreground mt-2">
-                        Please check your email for the verification code.
+                        Please enter your two-factor authentication code
                       </p>
                     </FormItem>
                   )}
