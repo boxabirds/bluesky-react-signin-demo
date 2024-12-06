@@ -106,7 +106,7 @@ export default function AuthPage() {
       const response = await agent.login({
         identifier: loginData.identifier,
         password: loginData.password,
-        verificationCode: data.code,
+        totp: data.code,
       });
 
       handleSuccessfulLogin(agent, response);
