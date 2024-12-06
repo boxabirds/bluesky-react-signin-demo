@@ -103,13 +103,22 @@ export default function AuthPage() {
         service: 'https://bsky.social',
       });
 
-      await agent.login({
+      // For 2FA flow, we need a two-step process
+      // First attempt will give us the 2FA token
+      const { data: sessionData } = await agent.api.com.atproto.server.createSession({
         identifier: loginData.identifier,
         password: loginData.password,
-        totp: data.code, // Use TOTP (Time-based One-Time Password) for 2FA
       });
 
-      handleSuccessfulLogin(agent);
+      // Then we confirm with the 2FA code
+      const response = await agent.api.com.atproto.server.confirmEmail({
+        token: data.code,
+        email: loginData.identifier,
+      });
+
+      if (response.success) {
+        handleSuccessfulLogin(agent);
+      }
       
     } catch (error: any) {
       console.error('2FA Verification error:', error);
