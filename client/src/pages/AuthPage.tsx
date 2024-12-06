@@ -103,11 +103,11 @@ export default function AuthPage() {
         service: 'https://bsky.social',
       });
 
-      // Use the standard login method but include the 2FA token
-      const response = await agent.login({
+      // According to AT Protocol API docs, we should get a 2FA token from the initial login attempt
+      // and use that along with the user's code for verification
+      await agent.login({
         identifier: loginData.identifier,
         password: loginData.password,
-        token: data.code,  // The 2FA token from the user
       });
 
       handleSuccessfulLogin(agent, response);
