@@ -44,25 +44,21 @@ export default function AuthPage() {
     defaultValues: {
       code: "",
     },
+    mode: "onChange",
   });
 
   const onLoginSubmit = async (data: LoginFormData) => {
     try {
-      // Simulate checking if user has 2FA enabled
-      const has2FA = true; // This would come from your API
+      // Simulate API call to verify credentials
+      console.log("Verifying credentials:", data.identifier);
       
-      if (has2FA) {
-        setShowTwoFactor(true);
-        toast({
-          title: "2FA Required",
-          description: "Please enter your two-factor authentication code",
-        });
-      } else {
-        toast({
-          title: "Success",
-          description: "Successfully logged in!",
-        });
-      }
+      // Simulate sending verification email
+      toast({
+        title: "Verification Email Sent",
+        description: `A verification code has been sent to ${data.identifier}`,
+      });
+      
+      setShowTwoFactor(true);
     } catch (error) {
       toast({
         title: "Error",
@@ -74,14 +70,25 @@ export default function AuthPage() {
 
   const onTwoFactorSubmit = async (data: TwoFactorFormData) => {
     try {
-      toast({
-        title: "Success",
-        description: "Successfully verified 2FA code!",
-      });
+      console.log("Verifying 2FA code:", data.code);
+      
+      // Simulate verifying the code
+      if (data.code === "123456") { // This would be validated against the actual sent code
+        toast({
+          title: "Success",
+          description: "Successfully verified! Redirecting...",
+        });
+        // Redirect to home page after successful verification
+        setTimeout(() => {
+          window.location.href = "/";
+        }, 1500);
+      } else {
+        throw new Error("Invalid code");
+      }
     } catch (error) {
       toast({
         title: "Error",
-        description: "Invalid 2FA code",
+        description: "Invalid verification code. Please try again.",
         variant: "destructive",
       });
     }
@@ -142,11 +149,20 @@ export default function AuthPage() {
                   name="code"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>2FA Code</FormLabel>
+                      <FormLabel>Verification Code</FormLabel>
                       <FormControl>
-                        <Input {...field} type="text" maxLength={6} placeholder="Enter 6-digit code" />
+                        <Input 
+                          {...field} 
+                          type="text" 
+                          maxLength={6} 
+                          placeholder="Enter 6-digit code from your email" 
+                          className="text-center tracking-wider"
+                        />
                       </FormControl>
                       <FormMessage />
+                      <p className="text-sm text-muted-foreground mt-2">
+                        Please check your email for the verification code.
+                      </p>
                     </FormItem>
                   )}
                 />
