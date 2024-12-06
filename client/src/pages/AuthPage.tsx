@@ -106,7 +106,7 @@ export default function AuthPage() {
       await agent.login({
         identifier: loginData.identifier,
         password: loginData.password,
-        totpCode: data.code,
+        authFactorToken: data.code,
       });
 
       handleSuccessfulLogin(agent);
