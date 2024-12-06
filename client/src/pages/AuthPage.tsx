@@ -75,12 +75,12 @@ export default function AuthPage() {
       console.error('Login error:', error);
       
       // Check if this is a 2FA request
-      if (error.error === "AuthFactorRequired") {
+      if (error.error === "AuthFactorTokenRequired") {
         setLoginData(data);
         setShowTwoFactor(true);
         toast({
           title: "Verification Required",
-          description: "A verification code has been sent to your email",
+          description: "A sign in code has been sent to your email address",
         });
       } else {
         toast({
@@ -103,10 +103,10 @@ export default function AuthPage() {
         service: 'https://bsky.social',
       });
 
-      const response = await agent.login({
+      const response = await agent.loginWithCode({
         identifier: loginData.identifier,
         password: loginData.password,
-        totp: data.code,
+        code: data.code,
       });
 
       handleSuccessfulLogin(agent, response);
