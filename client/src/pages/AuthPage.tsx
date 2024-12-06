@@ -51,18 +51,18 @@ export default function AuthPage() {
 
   const onLoginSubmit = async (data: LoginFormData) => {
     if (isLoading) return;
-    
+
     setIsLoading(true);
     try {
-      const agent = new BskyAgent({ 
-        service: 'https://bsky.social',
+      const agent = new BskyAgent({
+        service: "https://bsky.social",
       });
 
       toast({
         title: "Authenticating",
         description: "Connecting to BlueSky...",
       });
-      
+
       await agent.login({
         identifier: data.identifier,
         password: data.password,
@@ -70,12 +70,11 @@ export default function AuthPage() {
 
       // If we get here without an error, we're logged in
       handleSuccessfulLogin(agent);
-      
     } catch (error: any) {
-      console.error('Login error:', error);
-      
+      console.error("Login error:", error);
+
       // Check if this is a 2FA request
-      if (error.error === "AuthFactorRequired") {
+      if (error.error === "AuthFactorTokenRequiredError") {
         setLoginData(data);
         setShowTwoFactor(true);
         toast({
@@ -85,7 +84,8 @@ export default function AuthPage() {
       } else {
         toast({
           title: "Authentication Failed",
-          description: error.message || "Please check your credentials and try again",
+          description:
+            error.message || "Please check your credentials and try again",
           variant: "destructive",
         });
       }
@@ -96,23 +96,22 @@ export default function AuthPage() {
 
   const onTwoFactorSubmit = async (data: TwoFactorFormData) => {
     if (!loginData) return;
-    
+
     setIsLoading(true);
     try {
-      const agent = new BskyAgent({ 
-        service: 'https://bsky.social',
+      const agent = new BskyAgent({
+        service: "https://bsky.social",
       });
 
       await agent.login({
         identifier: loginData.identifier,
         password: loginData.password,
-        totp: data.code,
+        totpCode: data.code,
       });
 
       handleSuccessfulLogin(agent);
-      
     } catch (error: any) {
-      console.error('2FA Verification error:', error);
+      console.error("2FA Verification error:", error);
       toast({
         title: "Verification Failed",
         description: error.message || "Invalid verification code",
@@ -127,8 +126,8 @@ export default function AuthPage() {
     if (!agent.session) return;
 
     // Store the session securely
-    localStorage.setItem('bsky-session', JSON.stringify(agent.session));
-    
+    localStorage.setItem("bsky-session", JSON.stringify(agent.session));
+
     toast({
       title: "Welcome!",
       description: `Successfully logged in as ${agent.session?.handle}`,
@@ -150,7 +149,10 @@ export default function AuthPage() {
 
           {!showTwoFactor ? (
             <Form {...loginForm}>
-              <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
+              <form
+                onSubmit={loginForm.handleSubmit(onLoginSubmit)}
+                className="space-y-4"
+              >
                 <FormField
                   control={loginForm.control}
                   name="identifier"
@@ -158,7 +160,11 @@ export default function AuthPage() {
                     <FormItem>
                       <FormLabel>Username or Email</FormLabel>
                       <FormControl>
-                        <Input {...field} type="text" placeholder="handle.bsky.social" />
+                        <Input
+                          {...field}
+                          type="text"
+                          placeholder="handle.bsky.social"
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -197,7 +203,10 @@ export default function AuthPage() {
             </Form>
           ) : (
             <Form {...twoFactorForm}>
-              <form onSubmit={twoFactorForm.handleSubmit(onTwoFactorSubmit)} className="space-y-4">
+              <form
+                onSubmit={twoFactorForm.handleSubmit(onTwoFactorSubmit)}
+                className="space-y-4"
+              >
                 <FormField
                   control={twoFactorForm.control}
                   name="code"
@@ -205,11 +214,11 @@ export default function AuthPage() {
                     <FormItem>
                       <FormLabel>Two-Factor Code</FormLabel>
                       <FormControl>
-                        <Input 
-                          {...field} 
-                          type="text" 
-                          maxLength={6} 
-                          placeholder="Enter 6-digit code" 
+                        <Input
+                          {...field}
+                          type="text"
+                          maxLength={6}
+                          placeholder="Enter 6-digit code"
                           className="text-center tracking-wider"
                         />
                       </FormControl>
