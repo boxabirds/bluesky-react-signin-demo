@@ -219,16 +219,8 @@ export default function AuthPage() {
                         <Input
                           {...field}
                           type="text"
-                          maxLength={11}
                           placeholder="XXXXX-XXXXX"
-                          className="text-center tracking-wider font-mono"
-                          onChange={(e) => {
-                            let value = e.target.value.toUpperCase();
-                            if (value.length === 5 && !value.includes('-')) {
-                              value = value + '-';
-                            }
-                            field.onChange(value);
-                          }}
+                          className="text-center"
                         />
                       </FormControl>
                       <FormMessage />
